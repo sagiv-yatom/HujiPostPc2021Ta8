@@ -18,6 +18,7 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import java.util.List;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -25,7 +26,6 @@ public class MainActivity extends AppCompatActivity {
     WorkManager workManager;
     CalculationsDB database;
     CalculationsAdapter adapter;
-//    Data.Builder builder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,8 +35,8 @@ public class MainActivity extends AppCompatActivity {
         app = (CalculationsApplication) getApplication();
         workManager = WorkManager.getInstance(this);
 
-        workManager.cancelAllWork();
-        workManager.pruneWork();
+//        workManager.cancelAllWork();
+//        workManager.pruneWork();
 
         if (savedInstanceState == null || !savedInstanceState.containsKey("dataBase")) {
             database = app.getDatabase();
@@ -55,6 +55,15 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
 
         buttonCalculate.setEnabled(false);
+
+        // if there is an unfinished calculation, create a new request for it
+        for (Calculation calculation : database.allCalculations) {
+            if (calculation.getProgressPercent() < 100) {
+                database.removeCalculationFromSP(calculation);
+                String newId = setOneTimeWorkRequest(calculation);
+                database.addCalculationToSP(newId);
+            }
+        }
 
         editTextInsertNumber.addTextChangedListener(new TextWatcher() {
             @Override
@@ -83,7 +92,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
         // listen to the status (liveData) of the request
         LiveData<List<WorkInfo>> allLiveData = workManager.getWorkInfosByTagLiveData("calculation");
         allLiveData.observe(this, new Observer<List<WorkInfo>>() {
@@ -96,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
                     if (workInfo.getState() == WorkInfo.State.RUNNING) {
                         int calcProgress = progress.getInt("calcProgress", 0);
                         long lastCalculation = progress.getLong("lastCalculation", 2);
-                        System.out.println("last calculation is " + lastCalculation);
                         database.updateWorkProgress(id, calcProgress, lastCalculation);
                         adapter.notifyDataSetChanged();
                     } else if (workInfo.getState() == WorkInfo.State.SUCCEEDED) {
@@ -120,18 +127,29 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void setOneTimeWorkRequest(Calculation calculation) {
+    private String setOneTimeWorkRequest(Calculation calculation) {
         OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(CalculateRootsWorker.class)
                 .addTag("calculation")
                 .setInputData(
                         new Data.Builder()
                                 .putLong("number", calculation.getNumber())
+                                .putLong("lastCalculation", calculation.getLastCalculation())
                                 .build()
                 )
                 .build();
         workManager.enqueue(request);
 
         calculation.setWorkerId(request.getId().toString());
-        System.out.println("first id: " + request.getId());
+        return request.getId().toString();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        for (Calculation calculation : database.allCalculations) {
+            if (calculation.getProgressPercent() < 100) {
+                workManager.cancelWorkById(UUID.fromString(calculation.getWorkerId()));
+            }
+        }
     }
 }

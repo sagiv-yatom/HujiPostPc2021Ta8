@@ -8,4 +8,6 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="calculate_button">#2285d6</color>
+    <color name="delete_button">#B8483F</color>
+    <color name="text_color">#1C1F22</color>
 </resources>

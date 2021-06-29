@@ -23,6 +23,7 @@ public class CalculateRootsWorker extends Worker {
         // get the inputData from the request
         final int id = getInputData().getInt("id", 0);
         final long number = getInputData().getLong("number", 0);
+        final long lastCalculation = getInputData().getLong("lastCalculation", 2);
 
         // save id and number in the work's progress
         setProgressAsync(
@@ -32,7 +33,7 @@ public class CalculateRootsWorker extends Worker {
                         .build()
         );
 
-        for (long i = 2; i <= number; i++) {
+        for (long i = lastCalculation; i <= number; i++) {
             System.out.println("number " + number + ", calcProgress: " + i);
             if (i >= 1000 && (i % 1000 == 0)) {
                 // save the calculation progress in the work's progress

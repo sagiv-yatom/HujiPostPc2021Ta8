@@ -33,7 +33,7 @@ public class CalculationsAdapter extends RecyclerView.Adapter<CalculationHolder>
         holder.textView.setText(holder.getCalculationText(calculation));
 
         holder.deleteButton.setOnClickListener(v -> {
-            calculation.setState(State.CANCELED);
+            calculation.setState(State.DELETED);
             WorkManager.getInstance(context).cancelWorkById(UUID.fromString(calculation.getWorkerId()));
             calculations.deleteCalculation(calculation);
             notifyDataSetChanged();

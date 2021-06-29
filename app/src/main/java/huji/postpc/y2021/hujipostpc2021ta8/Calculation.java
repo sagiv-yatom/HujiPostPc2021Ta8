@@ -3,14 +3,14 @@ package huji.postpc.y2021.hujipostpc2021ta8;
 enum State {
     IN_PROGRESS,
     DONE,
-    CANCELED
+    DELETED
 }
 
 public class Calculation {
     private String workerId;
     private State state;
     private long number;
-    private long currentCalculation;
+    private long lastCalculation;
     private int progressPercent;
     private long root1;
     private long root2;
@@ -18,7 +18,7 @@ public class Calculation {
     public Calculation(long number) {
         this.number = number;
         this.state = State.IN_PROGRESS;
-        this.currentCalculation = 2;
+        this.lastCalculation = 2;
         this.progressPercent = 0;
     }
 
@@ -26,12 +26,16 @@ public class Calculation {
         return workerId;
     }
 
+    public State getState() {
+        return this.state;
+    }
+
     public long getNumber() {
         return this.number;
     }
 
-    public State getState() {
-        return this.state;
+    public long getLastCalculation() {
+        return this.lastCalculation;
     }
 
     public int getProgressPercent() {
@@ -54,8 +58,8 @@ public class Calculation {
         this.state = state;
     }
 
-    public void setCurrentCalculation(long calc) {
-        this.currentCalculation = calc;
+    public void setLastCalculation(long calc) {
+        this.lastCalculation = calc;
     }
 
     public void setProgressPercent(int progress) {
@@ -71,7 +75,7 @@ public class Calculation {
     }
 
     public String serialize() {
-        return workerId + "#" + state + "#" + number + "#" + currentCalculation +
+        return workerId + "#" + state + "#" + number + "#" + lastCalculation +
                 "#" + progressPercent + "#" + root1 + "#" + root2;
     }
 }

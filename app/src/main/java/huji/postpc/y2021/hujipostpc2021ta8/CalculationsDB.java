@@ -7,13 +7,16 @@ import java.util.Set;
 
 public class CalculationsDB {
     ArrayList<Calculation> allCalculations;
+    ArrayList<Calculation> deletedCalculations;
     Context context;
     private static SharedPreferences sp;
 
     public CalculationsDB(Context context) {
         this.context = context;
         this.allCalculations = new ArrayList<>();
+        this.deletedCalculations = new ArrayList<>();
         sp = context.getSharedPreferences("local_db_items", Context.MODE_PRIVATE);
+//        sp.edit().clear().apply();
         initializeFromSp();
     }
 
@@ -31,8 +34,14 @@ public class CalculationsDB {
                 }
             }
 
-            if (!allCalculations.contains(calculation)) {
+            if (!allCalculations.contains(calculation) && calculation.getState() == State.IN_PROGRESS) {
                 allCalculations.add(calculation);
+            }
+            if (calculation.getState() == State.DONE) {
+                allCalculations.add(calculation);
+            }
+            else if (calculation.getState() == State.DELETED) {
+                deletedCalculations.add(calculation);
             }
         }
     }
@@ -46,8 +55,8 @@ public class CalculationsDB {
             State state = State.IN_PROGRESS;
             if (split[1].equals("DONE"))
                 state = State.DONE;
-            else if (split[1].equals("CANCELED"))
-                state = State.CANCELED;
+            else if (split[1].equals("DELETED"))
+                state = State.DELETED;
             long number = Long.parseLong(split[2]);
             long currentCalculation = Long.parseLong(split[3]);
             int progressPercent = Integer.parseInt(split[4]);
@@ -58,7 +67,7 @@ public class CalculationsDB {
 
             calculation.setWorkerId(workerId);
             calculation.setState(state);
-            calculation.setCurrentCalculation(currentCalculation);
+            calculation.setLastCalculation(currentCalculation);
             calculation.setProgressPercent(progressPercent);
             calculation.setRoot1(root1);
             calculation.setRoot2(root2);
@@ -84,7 +93,7 @@ public class CalculationsDB {
         }
 
         SharedPreferences.Editor editor = sp.edit();
-        editor.putString(calculation.getWorkerId().toString(), calculation.serialize());
+        editor.putString(calculation.getWorkerId(), calculation.serialize());
         editor.apply();
     }
 
@@ -92,10 +101,11 @@ public class CalculationsDB {
         for (Calculation calculation : allCalculations) {
             if (calculation.getWorkerId().equals(id)) {
                 calculation.setProgressPercent(progress);
-                calculation.setCurrentCalculation(lastCalc);
+                calculation.setLastCalculation(lastCalc);
 
                 SharedPreferences.Editor editor = sp.edit();
                 editor.putString(id, calculation.serialize());
+                System.out.println("sssssss: " + calculation.serialize());
                 editor.apply();
                 return;
             }
@@ -115,6 +125,7 @@ public class CalculationsDB {
                 allCalculations.add(tempCalculation);
 
                 SharedPreferences.Editor editor = sp.edit();
+                editor.remove(id);
                 editor.putString(id, calculation.serialize());
                 editor.apply();
                 return;
@@ -123,10 +134,25 @@ public class CalculationsDB {
     }
 
     public void deleteCalculation(Calculation calculation) {
+        calculation.setState(State.DELETED);
         allCalculations.remove(calculation);
+        deletedCalculations.add(calculation);
 
         SharedPreferences.Editor editor = sp.edit();
         editor.remove(calculation.getWorkerId());
+        editor.putString(calculation.getWorkerId(), calculation.serialize());
+        editor.apply();
+    }
+
+    public void removeCalculationFromSP(Calculation calculation) {
+        SharedPreferences.Editor editor = sp.edit();
+        editor.remove(calculation.getWorkerId());
+        editor.apply();
+    }
+
+    public void addCalculationToSP(String id) {
+        SharedPreferences.Editor editor = sp.edit();
+        editor.putString(id, "");
         editor.apply();
     }
 }
